@@ -21,6 +21,7 @@ int M, N;
 // Helper function declarations 
 void loop(double** old, double** new_array, double** edge, int i_init, int i_end, int j_init, int j_end);
 void create_topology(int n, MPI_Comm &comm_new, MPI_Comm &comm_old, int &rank, int* coords);
+void create_topology(int n, MPI_Comm &comm_new, MPI_Comm &comm_old, int &rank, int* coords, int ni, int nj);
 void scatter(int rank, RealNumber **buf, RealNumber **local_buf, int M_local, int N_local);
 void gather(int rank,  RealNumber** local_buf, RealNumber** buf, int M_local, int N_local);
 void decompose(int &M_local, int &N_local, double pM, double pN, int rank);
@@ -39,6 +40,17 @@ void initialize(int &rank, int &size, int* coords)
     create_topology(size, comm, comm_old, rank, coords);
 }
 
+void initialize(int &rank, int &size, int* coords, int ni, int nj)
+{
+    // Same as above, but the length along each dimension is supplied beforehand
+    MPI_Comm comm_old, comm_cart; 
+    // Initializes MPI, returns rank, size and coordinates 
+    MPI_Init(NULL, NULL);
+    MPI_Comm_size(MPI_COMM_WORLD, &size); 
+    comm_old = MPI_COMM_WORLD;
+    create_topology(size, comm, comm_old, rank, coords, ni, nj);
+}
+
 RealNumber** read(char* filename, int rank, int &M_local, int &N_local, int &M_master, int &N_master, double pM, double pN)
 {
     // Returns the local buffer and the dimensions of the "unhalo-ed" local file
@@ -47,6 +59,7 @@ RealNumber** read(char* filename, int rank, int &M_local, int &N_local, int &M_m
     M_master = M; 
     N_master = N;
     decompose(M_local, N_local, pM, pN, rank); 
+    cout << M_local << " " << N_local << " " << rank << endl;
     RealNumber** buf = create2darray<RealNumber>(M_local+2, N_local+2, 255.0);
     // Rank 0 reads and scatters the process
     if (rank == 0)
@@ -263,6 +276,26 @@ void create_topology(int n, MPI_Comm &comm_new, MPI_Comm &comm_old, int &rank, i
     ranks[2] = rank_right; ranks[3] = rank_left; 
 }
 
+void create_topology(int n, MPI_Comm &comm_new, MPI_Comm &comm_old, int &rank, int* coords, int ni, int nj)
+{
+    // Same as create topology above, but MPI_Dims_create is not used, and the nubmer of dimensions is suppled by 
+    // the user. It is the user's responsability to make sure that these are defined correctly.
+    int period[2] = {0, 1};
+    int reorder = 1; 
+    int rank_up, rank_down, rank_left, rank_right; 
+    dim[0] = ni; 
+    dim[1] = nj; 
+    MPI_Cart_create(comm_old, 2, dim, period, reorder, &comm_new);
+    MPI_Comm_rank(comm_new, &rank); 
+    MPI_Cart_coords(comm_new, rank, 2, coords);
+    MPI_Cart_shift(comm_new, 0, 1, &rank_up, &rank_down); 
+    MPI_Cart_shift(comm_new, 1, 1, &rank_left, &rank_right); 
+    ranks[0] = rank_up; ranks[1] = rank_down;
+    ranks[2] = rank_right; ranks[3] = rank_left;  
+
+}
+
+
 void decompose(int &M_local, int &N_local, double pM, double pN, int rank)
 {
     // Decomposes the image. For now assume the number of processes divides N
@@ -289,19 +322,9 @@ void decompose_single_dim(int &A_local, int A, double pA, int coord, int P)
 
         rem = (2*M_edge + (P-2)*M_inner);
         // Check to see if process is in the corners 
-        if (coord == 0 || coord == P)
-        {
-            A_local = M_edge;
-        }
-        else
-        {
-            A_local = M_inner;
-        }
-        
-        if (coord < rem)
-        {
-            A_local++;
-        }
+        if (coord == 0 || coord == P-1){A_local = M_edge;}
+        else{A_local = M_inner;}
+        if (coord < rem){A_local++;}
     }
     else
     {

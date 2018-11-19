@@ -2,6 +2,7 @@
 #include "precision.h"
 
 void initialize(int &rank, int &size, int* coords);
+void initialize(int &rank, int &size, int* coords, int ni, int nj);
 void create_topology(int n, MPI_Comm &comm_new, MPI_Comm &comm_old, int &rank, int* coords);
 void scatter(int rank, RealNumber **buf, RealNumber **local_buf, int M_local, int N_local);
 RealNumber** read(char* filename, int rank, int &M_local, int &N_local, int &M_master, int &N_master, double pM, double pN);

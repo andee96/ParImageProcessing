@@ -13,6 +13,7 @@ using namespace std;
 RealNumber boundaryval(int i, int m);
 void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int* coords);
 void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN);
+void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &ni, int &nj);
 
 int main(int argc, char **argv)
 {
@@ -22,13 +23,22 @@ int main(int argc, char **argv)
     char filename[100]; 
     char destname[100];
     int coords[2] = {0,0};
-    // Define source and destination names 
-    read_params(argv[1], filename, destname, delta_max, pM, pN);
+    int auto_flag = atoi(argv[2]);
+    int ni=0, nj=0;
+    // Read parameters according to auto flag
+    if (auto_flag == 0)
+    {
+        read_params(argv[1], filename, destname, delta_max, pM, pN);
+    }
+    else if (auto_flag == 1)
+    {
+        read_params(argv[1], filename, destname, delta_max, pM, pN, ni, nj);
+    }
     int M_local, N_local; 
-    // cout << filename << destname << delta_max << pM << pN; 
 
-    // Initialize 
-    initialize(rank, size, coords); 
+    // Initialize according to the value of the flag 
+    if (auto_flag == 0){ initialize(rank, size, coords);}
+    else if (auto_flag == 1){ initialize(rank, size, coords, ni, nj);}
     if (rank == 0 ){cout << "Reconstructig original image from edge file: " << filename << endl;}
     sprintf(destname, "%s_%d_%2f.pgm", destname, size, delta_max);
     // Read the local buffer
@@ -88,3 +98,27 @@ void read_params(char* filename, char* file_in, char* file_out, double &delta_ma
     getline(file, line);
     pN = atof(line.c_str());
 }
+
+void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &ni, int &nj)
+{
+    // Reads the parameters from the specified file 
+    string line; 
+    ifstream file(filename);
+
+    // Read parameters line by line 
+    getline(file, line);
+    strcpy(file_in, line.c_str());
+    getline(file, line);
+    strcpy(file_out, line.c_str());
+    getline(file, line);
+    delta_max = atof(line.c_str());
+    getline(file, line);
+    pM = atof(line.c_str());
+    getline(file, line);
+    pN = atof(line.c_str());
+    getline(file, line);
+    ni = atoi(line.c_str());
+    getline(file, line);
+    nj = atoi(line.c_str()); 
+}
+
