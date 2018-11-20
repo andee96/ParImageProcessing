@@ -9,7 +9,7 @@ Written for course: Message Passing Programming
 #include "precision.h"
 #include "2darray.h"
 #include "pgmio.h"
-#include <cstdlib>
+#include <math.h>
 
 using namespace std;
 
@@ -152,7 +152,7 @@ void reconstruct(double delta_max,  RealNumber** old, RealNumber** new_array, Re
                 if (n%n_comp_delta == 0)
                 {
 
-                    delta[i-1][j-1] = abs(old[i][j] - new_array[i][j]);
+                    delta[i-1][j-1] = fabs(old[i][j] - new_array[i][j]);
                 }
             old[i][j] = new_array[i][j];
             }
