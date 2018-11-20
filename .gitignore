@@ -3,3 +3,7 @@ Results
 edgenew*
 test*
 *.pbs
+params.txt
+
+*.c
+
