@@ -39,11 +39,12 @@ int main(int argc, char **argv)
     // Initialize according to the value of the flag 
     if (auto_flag == 0){ initialize(rank, size, coords);}
     else if (auto_flag == 1){ initialize(rank, size, coords, ni, nj);}
+    int** proc_dims = create2darray<int>(size, 2, 0);
     if (rank == 0 ){cout << "Reconstructig original image from edge file: " << filename << endl;}
     sprintf(destname, "%s_%d_%2f.pgm", destname, size, delta_max);
     // Read the local buffer
     if (rank == 0 ){cout << "Reading file..." << endl;}
-    RealNumber** edge_local = read(filename, rank, M_local, N_local, M, N, pM, pN); 
+    RealNumber** edge_local = read(filename, rank, M_local, N_local, M, N, pM, pN, size, proc_dims); 
     if (rank == 0 ){cout << "Done." << endl;}
     RealNumber** old = create2darray<RealNumber>(M_local+2, N_local+2, 255);
     RealNumber** new_arr = create2darray<RealNumber>(M_local+2, N_local+2, 255);
@@ -52,9 +53,9 @@ int main(int argc, char **argv)
     if (rank == 0 ){cout << "Reconstructing..." << endl;}
     reconstruct(delta_max, old, new_arr, edge_local, M_local, N_local, rank);
     if (rank == 0 ){cout << "Writing file to: " << destname << endl;}
-    write(destname, rank, new_arr, M_local, N_local); 
+    delete[] edge_local; delete[] old; 
+    write(destname, rank, new_arr, proc_dims, size); 
     if (rank == 0 ){cout << "Done." << endl;}
-    delete[] edge_local;
     finalize();
 }
 

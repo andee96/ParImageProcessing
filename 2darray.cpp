@@ -42,6 +42,20 @@ void delete_array(T** t)
     delete[] t; 
 }
 
+template <typename T>
+T max_elem(T** arr, int M, int N)
+{
+    // Finds max element of array 
+    T m = 0; 
+    for (int i = 0; i < M; i++)
+        {
+            for (int j = 0; j < N; j++)
+            {
+                if (arr[i][j] > m){m = arr[i][j];}
+            }
+        }
+    return m; 
+}
 
     
   
