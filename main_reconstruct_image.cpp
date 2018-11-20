@@ -146,8 +146,41 @@ void read_params(char* filename, char* file_in, char* file_out, double &delta_ma
     file.close();
 }
 
-// void write_log_file(char* filename, char* file_in, char* file_out, double ttotal, int n_runs)
-// {
-//     return 0;
-// }
+void write_log_file(char* filename, char* file_in_name, 
+                    char* file_out_name, double ttotal, 
+                    int n_runs, int** proc_dims,
+                    double delta_max, int size)
+{
+    // Open file 
+    ofstream file(filename);
+    // Get date 
+    file << "Date: " << "\n";
+    file << endl;
+    // Input file details
+    file << "Input file: " << file_in_name << endl;
+    file <<"\tM: " << M << endl;
+    file <<"\tN: " << N << endl;
+    file <<"Output File: " << file_out_name << endl;
+    file << endl;
+    file << "Parameters:\n"
+    file << "\tNumber of cores: " << size << endl; 
+    file << "\tMaximum delta: " << delta_max << endl;
+    file <<"\tCartesian dimensions: " << endl;
+    file << endl;
+    file << "Individual process parameters:\n";
+    for (int r = 0; r<size; r++)
+    {
+        file << "\tProcess " << r <<":\n";
+        file << "\t\tCoordinates: " ;
+        file <<"\t\tM_local: " << proc_dims[r][0] << endl;
+        file << "\t\tN_local: " << proc_dims[r][1] << endl;
+        file << endl;
+    }
+
+    file <<"Run details:\n";
+    file << "\tTotal runtime: " << ttotal <<"s.\n";
+    file << "\tTime per individual run: " << ttotal/n_runs <<"s.\n";
+
+    file.close()
+}
 
