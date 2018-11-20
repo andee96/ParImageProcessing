@@ -55,17 +55,17 @@ int main(int argc, char **argv)
         // add function for timing in comms library
         RealNumber** edge_local = read(filename, rank, M_local, N_local, M, N, pM, pN, size, proc_dims); 
         // cout <<"Rank " << rank << ": Local sizes: " << M_local << ", " << N_local << endl;
-        // if (rank == 0 ){cout << "Done." << endl;}
+        if (rank == 0 ){cout << "Done." << endl;}
         RealNumber** old = create2darray<RealNumber>(M_local+2, N_local+2, 255);
         RealNumber** new_arr = create2darray<RealNumber>(M_local+2, N_local+2, 255);
         // Set sawtooth values for old 
         set_sawtooth_values(N_local, M_local, N, old, coords);
-        // if (rank == 0 ){cout << "Reconstructing..." << endl;}
+        if (rank == 0 ){cout << "Reconstructing..." << endl;}
         t1 = record_time();
         reconstruct(delta_max, old, new_arr, edge_local, M_local, N_local, rank);
         t2 = record_time();
         ttotal = ttotal + t2 - t1; 
-        // if (rank == 0 ){cout << "Writing file to: " << destname << endl;}
+        if (rank == 0 ){cout << "Writing file to: " << destname << endl;}
         delete[] edge_local; delete[] old; 
         write(destname, rank, new_arr, proc_dims, size); 
     }
@@ -146,41 +146,41 @@ void read_params(char* filename, char* file_in, char* file_out, double &delta_ma
     file.close();
 }
 
-void write_log_file(char* filename, char* file_in_name, 
-                    char* file_out_name, double ttotal, 
-                    int n_runs, int** proc_dims,
-                    double delta_max, int size)
-{
-    // Open file 
-    ofstream file(filename);
-    // Get date 
-    file << "Date: " << "\n";
-    file << endl;
-    // Input file details
-    file << "Input file: " << file_in_name << endl;
-    file <<"\tM: " << M << endl;
-    file <<"\tN: " << N << endl;
-    file <<"Output File: " << file_out_name << endl;
-    file << endl;
-    file << "Parameters:\n"
-    file << "\tNumber of cores: " << size << endl; 
-    file << "\tMaximum delta: " << delta_max << endl;
-    file <<"\tCartesian dimensions: " << endl;
-    file << endl;
-    file << "Individual process parameters:\n";
-    for (int r = 0; r<size; r++)
-    {
-        file << "\tProcess " << r <<":\n";
-        file << "\t\tCoordinates: " ;
-        file <<"\t\tM_local: " << proc_dims[r][0] << endl;
-        file << "\t\tN_local: " << proc_dims[r][1] << endl;
-        file << endl;
-    }
+// void write_log_file(char* filename, char* file_in_name, 
+//                     char* file_out_name, double ttotal, 
+//                     int n_runs, int** proc_dims,
+//                     double delta_max, int size)
+// {
+//     // Open file 
+//     ofstream file(filename);
+//     // Get date 
+//     file << "Date: " << "\n";
+//     file << endl;
+//     // Input file details
+//     file << "Input file: " << file_in_name << endl;
+//     file <<"\tM: " << M << endl;
+//     file <<"\tN: " << N << endl;
+//     file <<"Output File: " << file_out_name << endl;
+//     file << endl;
+//     file << "Parameters:\n"
+//     file << "\tNumber of cores: " << size << endl; 
+//     file << "\tMaximum delta: " << delta_max << endl;
+//     file <<"\tCartesian dimensions: " << endl;
+//     file << endl;
+//     file << "Individual process parameters:\n";
+//     for (int r = 0; r<size; r++)
+//     {
+//         file << "\tProcess " << r <<":\n";
+//         file << "\t\tCoordinates: " ;
+//         file <<"\t\tM_local: " << proc_dims[r][0] << endl;
+//         file << "\t\tN_local: " << proc_dims[r][1] << endl;
+//         file << endl;
+//     }
 
-    file <<"Run details:\n";
-    file << "\tTotal runtime: " << ttotal <<"s.\n";
-    file << "\tTime per individual run: " << ttotal/n_runs <<"s.\n";
+//     file <<"Run details:\n";
+//     file << "\tTotal runtime: " << ttotal <<"s.\n";
+//     file << "\tTime per individual run: " << ttotal/n_runs <<"s.\n";
 
-    file.close()
-}
+//     file.close()
+// }
 

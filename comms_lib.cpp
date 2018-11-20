@@ -109,6 +109,7 @@ void reconstruct(double delta_max,  RealNumber** old, RealNumber** new_array, Re
     RealNumber** delta = create2darray<RealNumber>(M_local, N_local, 0.0); 
     RealNumber max_delta_local = 100;
     RealNumber max_delta_global = 100;
+    RealNumber average_local = 0, average_global = 0;
 
     int n = 0; 
     int n_comp_delta = 100; // compute delta at every n_comp_delta iterations; 
@@ -151,7 +152,6 @@ void reconstruct(double delta_max,  RealNumber** old, RealNumber** new_array, Re
                 // Calculate absolute difference between old and new 
                 if (n%n_comp_delta == 0)
                 {
-
                     delta[i-1][j-1] = fabs(old[i][j] - new_array[i][j]);
                 }
             old[i][j] = new_array[i][j];
@@ -159,9 +159,16 @@ void reconstruct(double delta_max,  RealNumber** old, RealNumber** new_array, Re
         }
         if (n%n_comp_delta == 0)
         {
-            // Reduce max 
+            // Calculate max and average 
             max_delta_local = max_elem(delta, M_local, N_local);
+            average_local = avg<RealNumber>(new_array, M_local, N_local, M*N);
             MPI_Allreduce(&max_delta_local, &max_delta_global, 1, MPI_REALNUMBER, MPI_MAX, comm);
+            MPI_Allreduce(&average_local, &average_global, 1, MPI_REALNUMBER, MPI_SUM, comm);
+            // Rank 0 prints out average 
+            if (rank == 0)
+            {
+                cout << "Average: " << average_global << endl;
+            }
          }
         n++;
     }
