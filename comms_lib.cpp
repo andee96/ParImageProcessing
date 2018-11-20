@@ -27,6 +27,9 @@ void gather(int rank,  RealNumber** local_buf, RealNumber** buf, int** proc_dims
 void decompose(int &M_local, int &N_local, double pM, double pN, int rank, int size, int** proc_dims);
 void decompose_single_dim(int &A_local, int A, double pA, int coord, int P);
 void define_datatypes(MPI_Datatype &MPI_row, MPI_Datatype &MPI_col, int M, int N);
+void send(RealNumber* sendbuf, int bufsize, MPI_Datatype type, int send_rank, int tag, MPI_Comm comm, MPI_Request* request);
+void recv(RealNumber* recbuf, int bufsize, MPI_Datatype type, int rec_rank, int tag, MPI_Comm comm, MPI_Status* status);
+
 
 // Main functions 
 
@@ -86,8 +89,8 @@ void write(char* filename, int rank, RealNumber** local_buf, int** proc_dims,int
 
 void reconstruct(double delta_max,  RealNumber** old, RealNumber** new_array, RealNumber** edge, int M_local, int N_local, int rank)
 {
-    MPI_Request request;
-    MPI_Status status; 
+    MPI_Request request = MPI_REQUEST_NULL;
+    MPI_Status status;
     // Get the types for halo swaping 
     MPI_Datatype MPI_REAL_ROW; 
     MPI_Datatype MPI_REAL_COL; 
@@ -126,11 +129,11 @@ void reconstruct(double delta_max,  RealNumber** old, RealNumber** new_array, Re
         MPI_Wait(&request, &status);
         // Send column 1 to rank_left and receive column N_local+1 to rank_right
         MPI_Issend( &old[0][1], 1, MPI_REAL_COL, rank_left, 0, comm, &request);
-        MPI_Recv ( &old[0][N_local+1], 1, MPI_REAL_COL, rank_right, 0, comm, &status); 
+        MPI_Recv( &old[0][N_local+1], 1, MPI_REAL_COL, rank_right, 0, comm, &status); 
         // Loop over area 3
         loop(old, new_array, edge, 1, M_local+1, N2, N_local+1);
         MPI_Wait(&request, &status);
-        // Receive column 0 from rank_left and send column N_local to rank_right
+        // MPI_Issend column 0 from rank_left and send column N_local to rank_right
         MPI_Issend( &old[0][N_local], 1, MPI_REAL_COL, rank_right, 0, comm, &request);
         MPI_Recv( &old[0][0], 1, MPI_REAL_COL, rank_left, 0, comm, &status);
         // Loop over area 4
@@ -173,6 +176,13 @@ void finalize()
     MPI_Finalize();
 }
 
+double record_time()
+{
+    // Encapsulator for MPI_Wtime command. 
+    MPI_Barrier(comm);
+    double t = MPI_Wtime();
+    return t;
+}
 
 // Helper functions 
 void loop(double** old, double** new_array, double** edge, int i_init, int i_end, int j_init, int j_end)
@@ -268,16 +278,12 @@ void gather(int rank,  RealNumber** local_buf, RealNumber** buf, int** proc_dims
             // Update indices
             if ((r)%dim[1] != 0)
             {
-                cout << index_j << endl;
                 index_j = index_j + currN; 
-                cout << index_j << endl;
             }
             else
             {
-                cout << index_i << endl;
                 index_j = 0; 
                 index_i = index_i + currM;
-                cout << index_i << endl;
             }
             currM = proc_dims[r][0];
             currN = proc_dims[r][1];
@@ -293,9 +299,7 @@ void gather(int rank,  RealNumber** local_buf, RealNumber** buf, int** proc_dims
     else
     {
         // Non send data from all ranks to rank 0
-        cout << "Rank " << rank << "getting ready to send data to rank 0." << endl;
         MPI_Ssend(&local_buf[1][1], 1, SUB_ARRAY_SEND, 0, 0, comm);
-        cout <<"Rank " << rank <<": Done." << endl;
     }
 }
 
@@ -382,7 +386,6 @@ void decompose_single_dim(int &A_local, int A, double pA, int coord, int P)
     {
         int A_edge = int(pA * A/(2*pA + P - 2));
         int A_inner = int(A - 2*A_edge)/(P -2);
-        cout << A_edge << " " << A_inner << endl;
         rem = A%(2*A_edge + (P-2)*A_inner);
         // Check to see if process is in the corners 
         if (coord == 0 || coord == P-1){A_local = A_edge;}
@@ -411,4 +414,22 @@ void define_datatypes(MPI_Datatype &MPI_row, MPI_Datatype &MPI_col, int M, int N
 
     MPI_Type_vector(M+2, 1, N+2, MPI_REALNUMBER, &MPI_col);
     MPI_Type_commit(&MPI_col);
+}
+
+void send(RealNumber* sendbuf, int bufsize, MPI_Datatype type, int send_rank, int tag, MPI_Comm comm, MPI_Request* request)
+{
+    // Only send if send_rank is not MPI_PROC_NULL
+    if (send_rank != MPI_PROC_NULL)
+    {
+        MPI_Issend(sendbuf, bufsize, type, send_rank, tag, comm, request);
+    }
+}
+
+void recv(RealNumber* recbuf, int bufsize, MPI_Datatype type, int rec_rank, int tag, MPI_Comm comm, MPI_Status* status)
+{
+    // Only receive if rec_rank is not MPI_PROC_NULL
+    if (rec_rank != MPI_PROC_NULL)
+    {
+        MPI_Recv(recbuf, bufsize, type, rec_rank, tag, comm, status);
+    }
 }

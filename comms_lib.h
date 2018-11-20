@@ -10,6 +10,8 @@ void gather(int rank,  RealNumber** local_buf, RealNumber** buf, int M_local, in
 void write(char* filename, int rank, RealNumber** local_buf, int** proc_dims,int size);
 void reconstruct(double delta_max,  RealNumber** old, RealNumber** new_array, RealNumber** edge, int M_local, int N_local, int rank);
 void finalize();
+double record_time();
+
 
 
 
