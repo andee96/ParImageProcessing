@@ -45,4 +45,21 @@ T** create2darray(int n_rows, int n_cols, T init_val)
     return arr; 
 }
 
+template <typename T>
+T average(T** arr, int M, int N, int  size)
+{
+    // Calculates the sum of all the elements of an array of "inner" size
+    // (no haloes) MbyN and divides it by the total size of the bigger array size.
+    T sum = 0; 
+    for (int i = 1; i <M+1; i++)
+    {
+        for (int j = 1; j <N+1; j++)
+        {
+            sum = sum + arr[i][j];
+        }
+    }
+    T avg = sum/size;
+    return avg;
+}
+
 

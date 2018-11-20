@@ -1,0 +1,7 @@
+edgenew192x128.pgm
+Tests/imagenew192x128
+0.01
+1.7
+1
+2
+2

@@ -3,16 +3,17 @@
 #include <cstring>
 #include <cstdlib>
 #include <string>
-#include "comms_lib.h"
+// #include "comms_lib.h"
 #include "mpi.h"
 #include "precision.h"
 #include "2darray.h"
 #include "pgmio.h"
+#include "ParImageProcessor.h"
 
 using namespace std; 
 
 RealNumber boundaryval(int i, int m);
-void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int* coords);
+void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int start_index);
 void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN);
 void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &ni, int &nj);
 
@@ -43,31 +44,45 @@ int main(int argc, char **argv)
     int M_local, N_local; 
 
     // Initialize according to the value of the flag 
-    if (auto_flag == 0){ initialize(rank, size, coords);}
-    else if (auto_flag == 1){ initialize(rank, size, coords, ni, nj);}
+    ParImageProcessor processor;
+    if (auto_flag == 0){processor.initialize(pM, pN);}
+    else if (auto_flag == 1){processor.initialize(pM, pN, ni, nj);}
+    // Assign coordinates and rank
+    coords[0] = processor.coords[0];
+    coords[1] = processor.coords[1];
+    rank = processor.rank;
+    size = processor.size;
     int** proc_dims = create2darray<int>(size, 2, 0);
-    if (rank == 0 ){cout << "Reconstructig original image from edge file: " << filename << endl;}
+    if (processor.rank == 0 ){cout << "Reconstructig original image from edge file: " << filename << endl;}
     sprintf(destname, "%s_%d_%2f.pgm", destname, size, delta_max);
     // Read the local buffer
     for (int n = 0; n < n_runs; n++)
     {
-        if (rank == 0 ){cout << "Run " << n << endl;}
+        if (processor.rank == 0 ){cout << "Run " << n << endl;}
         // add function for timing in comms library
-        RealNumber** edge_local = read(filename, rank, M_local, N_local, M, N, pM, pN, size, proc_dims); 
-        // cout <<"Rank " << rank << ": Local sizes: " << M_local << ", " << N_local << endl;
-        // if (rank == 0 ){cout << "Done." << endl;}
+        RealNumber** edge_local = processor.read(filename); 
+        // Assign local and global sizes
+        M_local = processor.M_local; 
+        N_local = processor.N_local;
+        M = processor.M;
+        N = processor.N; 
+        cout <<"Rank " << rank << ": Local sizes: " << M_local << ", " << N_local << endl;
+        if (processor.rank == 0 ){cout << "Done." << endl;}
         RealNumber** old = create2darray<RealNumber>(M_local+2, N_local+2, 255);
         RealNumber** new_arr = create2darray<RealNumber>(M_local+2, N_local+2, 255);
+        char tempfile[100];
+        sprintf(tempfile, "testing_%d.pgm", processor.rank);
         // Set sawtooth values for old 
-        set_sawtooth_values(N_local, M_local, N, old, coords);
-        // if (rank == 0 ){cout << "Reconstructing..." << endl;}
-        t1 = record_time();
-        reconstruct(delta_max, old, new_arr, edge_local, M_local, N_local, rank);
-        t2 = record_time();
+        set_sawtooth_values(N_local, M_local, N, old, processor.proc_indices[rank][1]);
+        if (processor.rank == 0 ){cout << "Reconstructing..." << endl;}
+        // pgmwrite(tempfile, &new_arr[0][0], processor.M_local+2, processor.N_local+2);
+        t1 = processor.record_time();
+        processor.reconstruct(delta_max, old, new_arr, edge_local);
+        t2 = processor.record_time();
         ttotal = ttotal + t2 - t1; 
-        // if (rank == 0 ){cout << "Writing file to: " << destname << endl;}
+        if (processor.rank == 0 ){cout << "Writing file to: " << destname << endl;}
         delete[] edge_local; delete[] old; 
-        write(destname, rank, new_arr, proc_dims, size); 
+        processor.write(destname, new_arr); 
     }
     if (rank == 0 )
     {
@@ -75,7 +90,7 @@ int main(int argc, char **argv)
         cout << "Total time spent reconstructing: " << ttotal << "s." << endl;
         cout <<"Time per reconstruction: " << ttotal/n_runs << "s." << endl; 
     }
-    finalize();
+    processor.finalize();
 }
 
 RealNumber boundaryval(int i, int m)
@@ -87,13 +102,13 @@ RealNumber boundaryval(int i, int m)
     return val;
 }
 
-void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int* coords)
+void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int start_index)
 {
     // Set sawtooth values for arr 
     double j_local, val;
     for (int j = 1; j <N_local+1; j++)
     {
-        j_local =  int(j + N_local * coords[1]);
+        j_local =  int(j + start_index);
         val = boundaryval(j_local, N);
         arr[0][j] = int(255*(1.0-val));
         arr[M_local+1][j] = int(255*val);
@@ -146,41 +161,41 @@ void read_params(char* filename, char* file_in, char* file_out, double &delta_ma
     file.close();
 }
 
-void write_log_file(char* filename, char* file_in_name, 
-                    char* file_out_name, double ttotal, 
-                    int n_runs, int** proc_dims,
-                    double delta_max, int size)
-{
-    // Open file 
-    ofstream file(filename);
-    // Get date 
-    file << "Date: " << "\n";
-    file << endl;
-    // Input file details
-    file << "Input file: " << file_in_name << endl;
-    file <<"\tM: " << M << endl;
-    file <<"\tN: " << N << endl;
-    file <<"Output File: " << file_out_name << endl;
-    file << endl;
-    file << "Parameters:\n"
-    file << "\tNumber of cores: " << size << endl; 
-    file << "\tMaximum delta: " << delta_max << endl;
-    file <<"\tCartesian dimensions: " << endl;
-    file << endl;
-    file << "Individual process parameters:\n";
-    for (int r = 0; r<size; r++)
-    {
-        file << "\tProcess " << r <<":\n";
-        file << "\t\tCoordinates: " ;
-        file <<"\t\tM_local: " << proc_dims[r][0] << endl;
-        file << "\t\tN_local: " << proc_dims[r][1] << endl;
-        file << endl;
-    }
+// void write_log_file(char* filename, char* file_in_name, 
+//                     char* file_out_name, double ttotal, 
+//                     int n_runs, int** proc_dims,
+//                     double delta_max, int size)
+// {
+//     // Open file 
+//     ofstream file(filename);
+//     // Get date 
+//     file << "Date: " << "\n";
+//     file << endl;
+//     // Input file details
+//     file << "Input file: " << file_in_name << endl;
+//     file <<"\tM: " << M << endl;
+//     file <<"\tN: " << N << endl;
+//     file <<"Output File: " << file_out_name << endl;
+//     file << endl;
+//     file << "Parameters:\n"
+//     file << "\tNumber of cores: " << size << endl; 
+//     file << "\tMaximum delta: " << delta_max << endl;
+//     file <<"\tCartesian dimensions: " << endl;
+//     file << endl;
+//     file << "Individual process parameters:\n";
+//     for (int r = 0; r<size; r++)
+//     {
+//         file << "\tProcess " << r <<":\n";
+//         file << "\t\tCoordinates: " ;
+//         file <<"\t\tM_local: " << proc_dims[r][0] << endl;
+//         file << "\t\tN_local: " << proc_dims[r][1] << endl;
+//         file << endl;
+//     }
 
-    file <<"Run details:\n";
-    file << "\tTotal runtime: " << ttotal <<"s.\n";
-    file << "\tTime per individual run: " << ttotal/n_runs <<"s.\n";
+//     file <<"Run details:\n";
+//     file << "\tTotal runtime: " << ttotal <<"s.\n";
+//     file << "\tTime per individual run: " << ttotal/n_runs <<"s.\n";
 
-    file.close()
-}
+//     file.close()
+// }
 
