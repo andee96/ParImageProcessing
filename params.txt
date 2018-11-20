@@ -1,7 +1,7 @@
 edgenew768x768.pgm
 Tests/testing_custom_sizes
 0.1
-1.5
+1.7
 1
 4
 1
