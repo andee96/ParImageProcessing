@@ -9,6 +9,7 @@ Written for course: Message Passing Programming
 #include "precision.h"
 #include "2darray.h"
 #include "pgmio.h"
+#include <cstdlib>
 
 using namespace std;
 
