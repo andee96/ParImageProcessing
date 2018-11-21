@@ -26,14 +26,14 @@ ParImageProcessor::ParImageProcessor()
 
 // Public member function defintions 
 
-void ParImageProcessor::initialize(int PM, int PN)
+void ParImageProcessor::initialize(double PM, double PN)
 {
     pM = PM;
     pN = PN;
     create_topology();
 }
 
-void ParImageProcessor::initialize(int PM, int PN, int ni, int nj)
+void ParImageProcessor::initialize(double PM, double PN, int ni, int nj)
 {
     pM = PM;
     pN = PN;
@@ -331,27 +331,10 @@ void ParImageProcessor::decompose()
     decompose_single_dim(M_local, M, pM, coords[0], dim[0]);
     decompose_single_dim(N_local, N, pN, coords[1], dim[1]);
 
+    //  Create list containing the local dimensions for each rank 
     int local_dims[2];
-    // rank 0 waits to receive from every type 
-    MPI_Status status; 
-    MPI_Request request; 
-    if (rank == 0)
-    {
-        proc_dims[0][0] = M_local;
-        proc_dims[0][1] = N_local; 
-        for (int i = 1; i < size ; i++)
-        {
-            MPI_Recv(&proc_dims[i][0], 2, MPI_REALNUMBER, i, 0, comm, &status);
-        }
-    }
-    else
-    {
-        local_dims[0] = M_local;
-        local_dims[1] = N_local; 
-        MPI_Ssend(&local_dims[0], 2, MPI_REALNUMBER, 0, 0, comm);
-    }
-    // Probably temporary, process 0 then sends the array to everyone 
-    MPI_Bcast(&proc_dims[0][0], size*2, MPI_INT, 0, comm);
+    local_dims[0] = M_local; local_dims[1] = N_local;
+    MPI_Allgather(&local_dims[0], 2, MPI_INT, &proc_dims[0][0], 2, MPI_INT, comm);
 }
 
 void ParImageProcessor::decompose_single_dim(int &A_local, int A, double pA, int coord, int P)

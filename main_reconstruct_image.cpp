@@ -44,7 +44,6 @@ int main(int argc, char **argv)
         read_params(argv[1], filename, destname, delta_max, pM, pN, ni, nj);
     }
     int M_local, N_local; 
-
     // Initialize according to the value of the flag 
     ParImageProcessor processor;
     if (auto_flag == 0){processor.initialize(pM, pN);}
@@ -68,7 +67,6 @@ int main(int argc, char **argv)
         N_local = processor.N_local;
         M = processor.M;
         N = processor.N; 
-        cout <<"Rank " << rank << ": Local sizes: " << M_local << ", " << N_local << endl;
         if (processor.rank == 0 ){cout << "Done." << endl;}
         RealNumber** old = create2darray<RealNumber>(M_local+2, N_local+2, 255);
         RealNumber** new_arr = create2darray<RealNumber>(M_local+2, N_local+2, 255);

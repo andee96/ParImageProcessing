@@ -32,8 +32,8 @@ public:
 
 
     // Public methods
-    void initialize(int PM, int PN);
-    void initialize(int PM, int PN, int ni, int nj);
+    void initialize(double PM, double PN);
+    void initialize(double PM, double PN, int ni, int nj);
     RealNumber** read(char* filename);
     void reconstruct(double delta_max, RealNumber** old, RealNumber** new_array, RealNumber** edge);
     void write(char* filename, RealNumber** local_buf);
