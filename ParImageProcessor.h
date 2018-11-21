@@ -21,7 +21,7 @@ class ParImageProcessor
 public:
     // Public attributes 
     int size, rank; 
-    int dim[2] = {0,0};
+    int dim[2];
     int M, N; 
     int M_local, N_local; 
     int coords[2];
