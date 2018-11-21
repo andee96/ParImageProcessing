@@ -1,0 +1,7 @@
+edgenew512x512.pgm
+smallN_testing_result
+0.1
+1
+1
+
+
