@@ -46,20 +46,18 @@ T** create2darray(int n_rows, int n_cols, T init_val)
 }
 
 template <typename T>
-T avg(T** arr, int M, int N, int size)
+T average(T** arr, int M, int N, int  size)
 {
-    // Calculates average without the halos, of subarray of size M and N
-    // Size is the total size of the global array. 
+    // Calculates the sum of all the elements of an array of "inner" size
+    // (no haloes) MbyN and divides it by the total size of the bigger array size.
     T sum = 0; 
-    for (int i = 1 ; i<M+1; i++)
+    for (int i = 1; i <M+1; i++)
     {
-        for (int j = 1; j<N+1; j++)
+        for (int j = 1; j <N+1; j++)
         {
             sum = sum + arr[i][j];
         }
     }
-    T avg = sum/size; 
-
-    return avg; 
+    T avg = sum/size;
+    return avg;
 }
-
