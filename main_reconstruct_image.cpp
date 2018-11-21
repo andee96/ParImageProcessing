@@ -16,6 +16,8 @@ RealNumber boundaryval(int i, int m);
 void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int start_index);
 void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN);
 void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &ni, int &nj);
+void write_log_file(char* filename, char* file_in_name, char* file_out_name, double ttotal, int n_runs, int delta_max, ParImageProcessor &processor);
+
 
 int main(int argc, char **argv)
 {
@@ -70,12 +72,9 @@ int main(int argc, char **argv)
         if (processor.rank == 0 ){cout << "Done." << endl;}
         RealNumber** old = create2darray<RealNumber>(M_local+2, N_local+2, 255);
         RealNumber** new_arr = create2darray<RealNumber>(M_local+2, N_local+2, 255);
-        char tempfile[100];
-        sprintf(tempfile, "testing_%d.pgm", processor.rank);
         // Set sawtooth values for old 
         set_sawtooth_values(N_local, M_local, N, old, processor.proc_indices[rank][1]);
         if (processor.rank == 0 ){cout << "Reconstructing..." << endl;}
-        // pgmwrite(tempfile, &new_arr[0][0], processor.M_local+2, processor.N_local+2);
         t1 = processor.record_time();
         processor.reconstruct(delta_max, old, new_arr, edge_local);
         t2 = processor.record_time();
@@ -89,6 +88,10 @@ int main(int argc, char **argv)
         cout << "Done." << endl;
         cout << "Total time spent reconstructing: " << ttotal << "s." << endl;
         cout <<"Time per reconstruction: " << ttotal/n_runs << "s." << endl; 
+        // Write logfile
+        char log_name[100];
+        sprintf(log_name, "./test_log.txt");
+        write_log_file(log_name, filename, destname, ttotal, n_runs, delta_max, processor);
     }
     processor.finalize();
 }
@@ -161,41 +164,41 @@ void read_params(char* filename, char* file_in, char* file_out, double &delta_ma
     file.close();
 }
 
-// void write_log_file(char* filename, char* file_in_name, 
-//                     char* file_out_name, double ttotal, 
-//                     int n_runs, int** proc_dims,
-//                     double delta_max, int size)
-// {
-//     // Open file 
-//     ofstream file(filename);
-//     // Get date 
-//     file << "Date: " << "\n";
-//     file << endl;
-//     // Input file details
-//     file << "Input file: " << file_in_name << endl;
-//     file <<"\tM: " << M << endl;
-//     file <<"\tN: " << N << endl;
-//     file <<"Output File: " << file_out_name << endl;
-//     file << endl;
-//     file << "Parameters:\n"
-//     file << "\tNumber of cores: " << size << endl; 
-//     file << "\tMaximum delta: " << delta_max << endl;
-//     file <<"\tCartesian dimensions: " << endl;
-//     file << endl;
-//     file << "Individual process parameters:\n";
-//     for (int r = 0; r<size; r++)
-//     {
-//         file << "\tProcess " << r <<":\n";
-//         file << "\t\tCoordinates: " ;
-//         file <<"\t\tM_local: " << proc_dims[r][0] << endl;
-//         file << "\t\tN_local: " << proc_dims[r][1] << endl;
-//         file << endl;
-//     }
+void write_log_file(char* filename, char* file_in_name, char* file_out_name, double ttotal, int n_runs, int delta_max, ParImageProcessor &processor)
+{
+    // Open file 
+    ofstream file;
+    file.open(filename, ios::out);
+    file.open(filename, ios::out|ios::in|ios::binary);
 
-//     file <<"Run details:\n";
-//     file << "\tTotal runtime: " << ttotal <<"s.\n";
-//     file << "\tTime per individual run: " << ttotal/n_runs <<"s.\n";
+    // Get date 
+    file << "Date: " << "\n";
+    file << endl;
+    // Input file details
+    file << "Input file: " << file_in_name << endl;
+    file <<"\tM: " << processor.M << endl;
+    file <<"\tN: " << processor.N << endl;
+    file <<"Output File: " << file_out_name << endl;
+    file << endl;
+    file << "Parameters:\n";
+    file << "\tNumber of cores: " << processor.size << endl; 
+    file << "\tMaximum delta: " << delta_max << endl;
+    file <<"\tCartesian dimensions: " << endl;
+    file << endl;
+    file << "Individual process parameters:\n";
+    for (int r = 0; r<processor.size; r++)
+    {
+        file << "\tProcess " << r <<":\n";
+        file << "\t\tCoordinates: " ;
+        file <<"\t\tM_local: " << processor.proc_dims[r][0] << endl;
+        file << "\t\tN_local: " << processor.proc_dims[r][1] << endl;
+        file << endl;
+    }
 
-//     file.close()
-// }
+    file <<"Run details:\n";
+    file << "\tTotal runtime: " << ttotal <<"s.\n";
+    file << "\tTime per individual run: " << ttotal/n_runs <<"s.\n";
+
+    file.close();
+}
 
