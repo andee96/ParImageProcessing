@@ -145,7 +145,7 @@ void pgmwrite(char *filename, void *vx, int nx, int ny)
     exit(-1);
   }
 
-  printf("Writing %d x %d picture into file: %s\n", nx, ny, filename);
+  // printf("Writing %d x %d picture into file: %s\n", nx, ny, filename);
 
   /*
    *  Find the max and min absolute values of the array

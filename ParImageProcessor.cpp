@@ -156,18 +156,10 @@ void ParImageProcessor::reconstruct(double delta_max,  RealNumber** old, RealNum
             average_local = average(new_array, M_local, N_local, M*N);
             MPI_Allreduce(&max_delta_local, &max_delta_global, 1, MPI_REALNUMBER, MPI_MAX, comm);
             MPI_Allreduce(&average_local, &average_global, 1, MPI_REALNUMBER, MPI_SUM, comm);
-            if (rank == 0)
-	    {
-            	std::cout << "Average :" << average_global << std::endl;
-	    }
          }
         n++;
     }
     delete[] delta; 
-    if (rank == 0)
-    {
-        std::cout << "Reconstruction done, number of iterations: " << n << std::endl;
-    }
 }
 
 void ParImageProcessor::finalize()

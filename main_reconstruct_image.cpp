@@ -29,7 +29,11 @@ int main(int argc, char **argv)
     int coords[2] = {0,0};
     int auto_flag = atoi(argv[2]);
     int ni=0, nj=0;
-    double t1, t2, ttotal = 0;
+    // Timing calls 
+    double t1_reconstruct, t2_reconstruct, ttotal_reconstruct=0;
+    double t1_read, t2_read, ttotal_read=0;
+    double t1_write, t2_write, ttotal_write=0;
+    double ttotal = 0;
     int n_runs;
     if (argc == 4){n_runs = atoi(argv[3]);}
     else{n_runs = 1;}    
@@ -54,39 +58,49 @@ int main(int argc, char **argv)
     rank = processor.rank;
     size = processor.size;
     int** proc_dims = create2darray<int>(size, 2, 0);
-    if (processor.rank == 0 ){cout << "Reconstructig original image from edge file: " << filename << endl;}
     sprintf(destname, "%s_%d_%2f.pgm", destname, size, delta_max);
     // Read the local buffer
     for (int n = 0; n < n_runs; n++)
     {
         if (processor.rank == 0 ){cout << "Run " << n << endl;}
         // add function for timing in comms library
+        t1_read = processor.record_time();
         RealNumber** edge_local = processor.read(filename); 
+        t2_read = processor.record_time();
         // Assign local and global sizes
         M_local = processor.M_local; 
         N_local = processor.N_local;
         M = processor.M;
         N = processor.N; 
-        if (processor.rank == 0 ){cout << "Done." << endl;}
         RealNumber** old = create2darray<RealNumber>(M_local+2, N_local+2, 255);
         RealNumber** new_arr = create2darray<RealNumber>(M_local+2, N_local+2, 255);
         // Set sawtooth values for old 
         set_sawtooth_values(N_local, M_local, N, old, processor.proc_indices[rank][1]);
-        if (processor.rank == 0 ){cout << "Reconstructing..." << endl;}
-        t1 = processor.record_time();
+        t1_reconstruct = processor.record_time();
         processor.reconstruct(delta_max, old, new_arr, edge_local);
-        t2 = processor.record_time();
-        ttotal = ttotal + t2 - t1; 
-        if (processor.rank == 0 ){cout << "Writing file to: " << destname << endl;}
+        t2_reconstruct = processor.record_time();
         delete[] edge_local; delete[] old; 
-        processor.write(destname, new_arr); 
+        t1_write = processor.record_time();
+        processor.write(destname, new_arr);
+        t2_write = processor.record_time();
+        // Record times 
+        ttotal_read =  ttotal_read + t2_read - t1_read;
+        ttotal_reconstruct = ttotal_reconstruct + t2_reconstruct - t1_reconstruct;
+        ttotal_write = ttotal_write + t2_write - t1_write;
+        ttotal = ttotal + ttotal_write + ttotal_reconstruct + ttotal_read;
     }
     if (rank == 0 )
     {
         cout << "Done." << endl;
-        cout << "Total time spent reconstructing: " << ttotal << "s." << endl;
-        cout <<"Time per reconstruction: " << ttotal/n_runs << "s." << endl; 
-        // Write logfile
+        cout << "Total time spent reconstructing: " << ttotal_reconstruct << "s." << endl;
+        cout <<"\tTime per reconstruction: " << ttotal_reconstruct/n_runs << "s." << endl; 
+        cout << "Total time spent reading: " << ttotal_read << "s." << endl;
+        cout << "\tTime per read: " << ttotal_read/n_runs << "s." << endl;
+        cout << "Total time spent writing: " << ttotal_write << "s." << endl;
+        cout << "\tTime per write: " << ttotal_write/n_runs << "s." << endl;
+        cout << "Total runtime: " << ttotal << "s." << endl;
+        cout <<"\tTotal time per run: " << ttotal/n_runs << "s." << endl;
+         // Write logfile
         char log_name[100];
         sprintf(log_name, "./test_log.txt");
         write_log_file(log_name, filename, destname, ttotal, n_runs, delta_max, processor);
