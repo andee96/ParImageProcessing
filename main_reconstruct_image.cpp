@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     // Read the local buffer
     for (int n = 0; n < n_runs; n++)
     {
-        if (processor.rank == 0 ){cout << "Run " << n << endl;}
+        //if (processor.rank == 0 ){cout << "Run " << n << endl;}
         // add function for timing in comms library
         t1_read = processor.record_time();
         RealNumber** edge_local = processor.read(filename); 
@@ -87,8 +87,8 @@ int main(int argc, char **argv)
         ttotal_read =  ttotal_read + t2_read - t1_read;
         ttotal_reconstruct = ttotal_reconstruct + t2_reconstruct - t1_reconstruct;
         ttotal_write = ttotal_write + t2_write - t1_write;
-        ttotal = ttotal + ttotal_write + ttotal_reconstruct + ttotal_read;
     }
+	ttotal = ttotal_read + ttotal_reconstruct + ttotal_write; 
     if (rank == 0 )
     {
         cout << "Done." << endl;
