@@ -1,0 +1,7 @@
+edgenew512x384.pgm
+Results_smallN_testing/smallN_testing_result
+0.05
+1
+1
+
+

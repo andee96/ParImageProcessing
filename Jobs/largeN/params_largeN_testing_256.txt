@@ -1,0 +1,8 @@
+edgenew3840x2160.pgm
+Results_largeN_testing/largeN_testing_result
+0.1
+1
+1
+500
+
+

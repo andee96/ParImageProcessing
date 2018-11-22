@@ -1,4 +1,4 @@
-edgenew512x512.pgm
+edgenew512x384.pgm
 smallN_testing_result
 0.1
 1
