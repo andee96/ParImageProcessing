@@ -76,7 +76,7 @@ void ParImageProcessor::write(char* filename, RealNumber** local_buf)
     delete[] buf; 
 }
 
-void ParImageProcessor::reconstruct(double delta_max,  RealNumber** old, RealNumber** new_array, RealNumber** edge)
+void ParImageProcessor::reconstruct(double delta_max, int n_comp_delta, RealNumber** old, RealNumber** new_array, RealNumber** edge)
 {
     MPI_Request request = MPI_REQUEST_NULL;
     MPI_Status status;
@@ -105,8 +105,7 @@ void ParImageProcessor::reconstruct(double delta_max,  RealNumber** old, RealNum
     RealNumber average_global = 0; 
 
     int n = 0; 
-    int n_comp_delta = 200; // compute delta at every n_comp_delta iterations; 
-
+   
     //Loop reconstruct the image in buffer by using the old image
     while (max_delta_global > delta_max)
     {

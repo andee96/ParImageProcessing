@@ -35,7 +35,7 @@ public:
     void initialize(double PM, double PN);
     void initialize(double PM, double PN, int ni, int nj);
     RealNumber** read(char* filename);
-    void reconstruct(double delta_max, RealNumber** old, RealNumber** new_array, RealNumber** edge);
+    void reconstruct(double delta_max, int n_comp_delta, RealNumber** old, RealNumber** new_array, RealNumber** edge);
     void write(char* filename, RealNumber** local_buf);
     void finalize();
     double record_time();

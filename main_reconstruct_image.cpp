@@ -14,8 +14,8 @@ using namespace std;
 
 RealNumber boundaryval(int i, int m);
 void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int start_index);
-void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN);
-void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &ni, int &nj);
+void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &n_comp_delta);
+void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &n_comp_delta, int &ni, int &nj);
 void write_log_file(char* filename, char* file_in_name, char* file_out_name, double ttotal, int n_runs, int delta_max, ParImageProcessor &processor);
 
 
@@ -34,18 +34,18 @@ int main(int argc, char **argv)
     double t1_read, t2_read, ttotal_read=0;
     double t1_write, t2_write, ttotal_write=0;
     double ttotal = 0;
-    int n_runs;
+    int n_runs, n_comp_delta;
     if (argc == 4){n_runs = atoi(argv[3]);}
     else{n_runs = 1;}    
 
     // Read parameters according to auto flag
     if (auto_flag == 0)
     {
-        read_params(argv[1], filename, destname, delta_max, pM, pN);
+        read_params(argv[1], filename, destname, delta_max, pM, pN, n_comp_delta);
     }
     else if (auto_flag == 1)
     {
-        read_params(argv[1], filename, destname, delta_max, pM, pN, ni, nj);
+        read_params(argv[1], filename, destname, delta_max, pM, pN, n_comp_delta, ni, nj);
     }
     int M_local, N_local; 
     // Initialize according to the value of the flag 
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
         // Set sawtooth values for old 
         set_sawtooth_values(N_local, M_local, N, old, processor.proc_indices[rank][1]);
         t1_reconstruct = processor.record_time();
-        processor.reconstruct(delta_max, old, new_arr, edge_local);
+        processor.reconstruct(delta_max, n_comp_delta, old, new_arr, edge_local);
         t2_reconstruct = processor.record_time();
         delete[] edge_local; delete[] old; 
         t1_write = processor.record_time();
@@ -130,7 +130,7 @@ void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int 
     }
 }
 
-void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN)
+void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &n_comp_delta)
 {
     // Reads the parameters from the specified file 
     string line; 
@@ -147,11 +147,13 @@ void read_params(char* filename, char* file_in, char* file_out, double &delta_ma
     pM = atof(line.c_str());
     getline(file, line);
     pN = atof(line.c_str());
+    getline(file, line);
+    n_comp_delta = atoi(line.c_str());
 
     file.close();
 }
 
-void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &ni, int &nj)
+void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &n_comp_delta, int &ni, int &nj)
 {
     // Reads the parameters from the specified file 
     string line; 
@@ -168,6 +170,8 @@ void read_params(char* filename, char* file_in, char* file_out, double &delta_ma
     pM = atof(line.c_str());
     getline(file, line);
     pN = atof(line.c_str());
+    getline(file, line);
+    n_comp_delta = atoi(line.c_str());
     getline(file, line);
     ni = atoi(line.c_str());
     getline(file, line);
