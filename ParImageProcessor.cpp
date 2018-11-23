@@ -21,7 +21,7 @@ ParImageProcessor::ParImageProcessor()
     // Initialize arrays with indices and dimensions of each process
     proc_dims = create2darray<int>(size, 2, 0);
     proc_indices = create2darray<int>(size, 2, 0);
-    dim[0] = 0; dim[1] = 1;
+    dim[0] = 0; dim[1] = 0;
 }
 
 // Public member function defintions 

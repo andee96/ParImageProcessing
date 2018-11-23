@@ -4,6 +4,6 @@ edgenew*
 test*
 *.pbs
 params.txt
-
 *.c
+Jobs
 
