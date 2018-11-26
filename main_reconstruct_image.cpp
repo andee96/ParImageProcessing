@@ -73,13 +73,13 @@ int main(int argc, char **argv)
         M = processor.M;
         N = processor.N; 
         RealNumber** old = create2darray<RealNumber>(M_local+2, N_local+2, 255);
-        RealNumber** new_arr = create2darray<RealNumber>(M_local+2, N_local+2, 255);
         // Set sawtooth values for old 
         set_sawtooth_values(N_local, M_local, N, old, processor.proc_indices[rank][1]);
         t1_reconstruct = processor.record_time();
-        processor.reconstruct(delta_max, n_comp_delta, old, new_arr, edge_local);
+        // Calculate and return the new array and delete local edge once this is done
+        RealNumber **new_arr = processor.reconstruct(delta_max, n_comp_delta, old, edge_local);
         t2_reconstruct = processor.record_time();
-        delete[] edge_local; delete[] old; 
+        delete[] edge_local; delete[] old;
         t1_write = processor.record_time();
         processor.write(destname, new_arr);
         t2_write = processor.record_time();

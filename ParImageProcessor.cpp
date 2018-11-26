@@ -76,8 +76,9 @@ void ParImageProcessor::write(char* filename, RealNumber** local_buf)
     delete[] buf; 
 }
 
-void ParImageProcessor::reconstruct(double delta_max, int n_comp_delta, RealNumber** old, RealNumber** new_array, RealNumber** edge)
+RealNumber** ParImageProcessor::reconstruct(double delta_max, int n_comp_delta, RealNumber** old, RealNumber** edge)
 {
+    RealNumber** new_array = create2darray<RealNumber>(M_local+2, N_local+2, 0.0);
     MPI_Request request = MPI_REQUEST_NULL;
     MPI_Status status;
     // Get the types for halo swaping 
@@ -159,6 +160,7 @@ void ParImageProcessor::reconstruct(double delta_max, int n_comp_delta, RealNumb
         n++;
     }
     delete[] delta; 
+    return new_array;
 }
 
 void ParImageProcessor::finalize()
@@ -219,6 +221,7 @@ void ParImageProcessor::create_topology(int ni, int nj)
     dim[1] = nj; 
     MPI_Cart_create(comm_old, 2, dim, period, reorder, &comm);
     MPI_Comm_rank(comm, &rank); 
+    if (rank == 0){std::cout << dim[0] << " " << dim[1] << std::endl;}
     MPI_Cart_coords(comm, rank, 2, coords);
     MPI_Cart_shift(comm, 0, 1, &rank_up, &rank_down); 
     MPI_Cart_shift(comm, 1, 1, &rank_left, &rank_right); 

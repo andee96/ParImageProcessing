@@ -4,12 +4,13 @@ Testing dynamic allocation memory scattering and gathering in c++
 
 #include "mpi.h"
 #include "precision.h"
+#include "2darray.h"
 #include <iostream>
 
 using namespace std; 
 
 template <typename T>
-T** create2darray(int n_rows, int n_cols, RealNumber init_val)
+T** create2darray(int n_rows, int n_cols, T init_val)
 {
     // Creates dynamically allocated 2D contiguous array 
     T **arr = new T*[n_rows];
@@ -36,13 +37,6 @@ T** create2darray(int n_rows, int n_cols, RealNumber init_val)
 }
 
 template <typename T>
-void delete_array(T** t)
-{
-    // Deletes memory for t
-    delete[] t; 
-}
-
-template <typename T>
 T max_elem(T** arr, int M, int N)
 {
     // Finds max element of array 
@@ -57,5 +51,20 @@ T max_elem(T** arr, int M, int N)
     return m; 
 }
 
-    
+template <typename T>
+T average(T** arr, int M, int N, int  size)
+{
+    // Calculates the sum of all the elements of an array of "inner" size
+    // (no haloes) MbyN and divides it by the total size of the bigger array size.
+    T sum = 0; 
+    for (int i = 1; i <M+1; i++)
+    {
+        for (int j = 1; j <N+1; j++)
+        {
+            sum = sum + arr[i][j];
+        }
+    }
+    T avg = sum/size;
+    return avg;
+}
   
