@@ -1,9 +1,14 @@
+/*
+Author: Andreas Malekos
+Date: 26/11/2016
+Main file for image reconstruction
+*/
+
 #include <iostream>
 #include <fstream>
 #include <cstring>
 #include <cstdlib>
 #include <string>
-// #include "comms_lib.h"
 #include "mpi.h"
 #include "precision.h"
 #include "2darray.h"
@@ -12,6 +17,7 @@
 
 using namespace std; 
 
+// Helper function declarations
 RealNumber boundaryval(int i, int m);
 void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int start_index);
 void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &n_comp_delta);
@@ -29,16 +35,17 @@ int main(int argc, char **argv)
     int coords[2] = {0,0};
     int auto_flag = atoi(argv[2]);
     int ni=0, nj=0;
-    // Timing calls 
+    // Declare variables for time measurements 
     double t1_reconstruct, t2_reconstruct, ttotal_reconstruct=0;
     double t1_read, t2_read, ttotal_read=0;
     double t1_write, t2_write, ttotal_write=0;
     double ttotal = 0;
     int n_runs, n_comp_delta;
+    // Set the number of runs to 1 if only 3 arguments are passed in the comand line 
     if (argc == 4){n_runs = atoi(argv[3]);}
     else{n_runs = 1;}    
 
-    // Read parameters according to auto flag
+    // Read parameters according to whether automatic cartesian topology is set to 1. 
     if (auto_flag == 0)
     {
         read_params(argv[1], filename, destname, delta_max, pM, pN, n_comp_delta);
@@ -48,7 +55,7 @@ int main(int argc, char **argv)
         read_params(argv[1], filename, destname, delta_max, pM, pN, n_comp_delta, ni, nj);
     }
     int M_local, N_local; 
-    // Initialize according to the value of the flag 
+    // Declare and initialize ParImageProcessor according to the value of the flag. 
     ParImageProcessor processor;
     if (auto_flag == 0){processor.initialize(pM, pN);}
     else if (auto_flag == 1){processor.initialize(pM, pN, ni, nj);}
@@ -57,13 +64,13 @@ int main(int argc, char **argv)
     coords[1] = processor.coords[1];
     rank = processor.rank;
     size = processor.size;
-    int** proc_dims = create2darray<int>(size, 2, 0);
+    // Define destination name
     sprintf(destname, "%s_%d_%2f.pgm", destname, size, delta_max);
-    // Read the local buffer
+    // Begin the reconstruction process until the total number of runs is reached. 
     for (int n = 0; n < n_runs; n++)
     {
-        //if (processor.rank == 0 ){cout << "Run " << n << endl;}
-        // add function for timing in comms library
+        if (processor.rank == 0 ){cout << "Run " << n << endl;}
+        // Read the local buffer
         t1_read = processor.record_time();
         RealNumber** edge_local = processor.read(filename); 
         t2_read = processor.record_time();
@@ -80,6 +87,7 @@ int main(int argc, char **argv)
         RealNumber **new_arr = processor.reconstruct(delta_max, n_comp_delta, old, edge_local);
         t2_reconstruct = processor.record_time();
         delete[] edge_local; delete[] old;
+        // Write result to destname
         t1_write = processor.record_time();
         processor.write(destname, new_arr);
         t2_write = processor.record_time();
@@ -88,6 +96,7 @@ int main(int argc, char **argv)
         ttotal_reconstruct = ttotal_reconstruct + t2_reconstruct - t1_reconstruct;
         ttotal_write = ttotal_write + t2_write - t1_write;
     }
+    // Calculate the total runtime at the end all the runs
 	ttotal = ttotal_read + ttotal_reconstruct + ttotal_write; 
     if (rank == 0 )
     {
@@ -110,7 +119,13 @@ int main(int argc, char **argv)
 
 RealNumber boundaryval(int i, int m)
 {
-    // Sets the boundary value 
+    /* Sets boundary value for sawtooth values
+    Inptuts:
+        int i: Index along i direction
+        int m: Size of master array along i direction
+    Outputs:
+        RealNumber: boundary value
+    */
     RealNumber val; 
     val = 2.0*((RealNumber)(i-1))/((RealNumber)(m-1));
     if (i >= m/2+1) {val = 2.0 - val;};
@@ -119,7 +134,13 @@ RealNumber boundaryval(int i, int m)
 
 void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int start_index)
 {
-    // Set sawtooth values for arr 
+    /* Sets sawtooth values for the given array.
+    Inputs:
+        int N_local: Local size along i direction
+        int M_local: Local size along j direction
+        RealNumber** arr: 2D array whose sawtooth values are being set.
+        int start_index: starting index of arr on the masterbuf array
+    */
     double j_local, val;
     for (int j = 1; j <N_local+1; j++)
     {
@@ -132,7 +153,7 @@ void set_sawtooth_values(int N_local, int M_local, int N, RealNumber** arr, int 
 
 void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &n_comp_delta)
 {
-    // Reads the parameters from the specified file 
+    // Reads the parameters from the specified file in the case where automatic dimension creation is used. 
     string line; 
     ifstream file(filename);
 
@@ -155,7 +176,7 @@ void read_params(char* filename, char* file_in, char* file_out, double &delta_ma
 
 void read_params(char* filename, char* file_in, char* file_out, double &delta_max, double &pM, double &pN, int &n_comp_delta, int &ni, int &nj)
 {
-    // Reads the parameters from the specified file 
+    // Reads the parameters from the specified file in the case where manual dimension creation is used. 
     string line; 
     ifstream file(filename);
 
@@ -182,6 +203,7 @@ void read_params(char* filename, char* file_in, char* file_out, double &delta_ma
 
 void write_log_file(char* filename, char* file_in_name, char* file_out_name, double ttotal, int n_runs, int delta_max, ParImageProcessor &processor)
 {
+    // Writes log file
     // Open file 
     ofstream file;
     file.open(filename, ios::out);
